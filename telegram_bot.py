@@ -110,21 +110,23 @@ def enviar_mensaje(texto):
 
 def enviar_alerta_precio(ruta, fecha_ida, fecha_vuelta, precio_total,
                          aerolinea, duracion, escalas, pasajeros,
-                         es_minimo_historico=False):
+                         salida="", llegada="", salida_vuelta="", llegada_vuelta="",
+                         buscador="", es_minimo_historico=False):
     """
     Envia una alerta formateada cuando se encuentra un precio bajo el umbral.
     es_minimo_historico=True agrega un mensaje especial si es el minimo historico.
     """
 
-    # Emoji segun si es minimo historico o solo bajo el umbral
     if es_minimo_historico:
         encabezado = "NUEVO MINIMO HISTORICO"
     else:
         encabezado = "PRECIO BAJO UMBRAL"
 
-    # Construye el mensaje con formato HTML
-    # <b> = negrita, \n = salto de linea
+    linea_horario_ida    = f"<b>🕐 Horario ida:</b> {salida} → {llegada}\n" if (salida or llegada) else ""
+    linea_horario_vuelta = f"<b>🕐 Horario vuelta:</b> {salida_vuelta} → {llegada_vuelta}\n" if (salida_vuelta or llegada_vuelta) else ""
+
     mensaje = (
+        f"<b>📁 {buscador}</b>\n"
         f"<b>✈️ {encabezado}</b>\n"
         f"\n"
         f"<b>Ruta:</b> {ruta}\n"
@@ -138,9 +140,10 @@ def enviar_alerta_precio(ruta, fecha_ida, fecha_vuelta, precio_total,
         f"<b>Aerolínea:</b> {aerolinea}\n"
         f"<b>Duración:</b> {duracion}\n"
         f"<b>Escalas:</b> {escalas}\n"
+        f"{linea_horario_ida}"
+        f"{linea_horario_vuelta}"
     )
 
-    # Llama a la funcion base para enviar el mensaje
     return enviar_mensaje(mensaje)
 
 

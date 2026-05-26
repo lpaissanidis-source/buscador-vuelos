@@ -19,6 +19,8 @@ from database     import crear_tabla, guardar_precio, obtener_minimo_historico
 from buscador     import buscar_todas_las_combinaciones
 from telegram_bot import enviar_alerta_precio, enviar_mensaje
 
+NOMBRE_BUSCADOR = "Vuelos Buenos Aires"
+
 
 # ============================================================
 # FUNCION: leer configuracion
@@ -154,6 +156,11 @@ def procesar_ruta(config_ruta):
             aerolinea          = mejor_vuelo["aerolinea"],
             duracion           = mejor_vuelo["duracion"],
             escalas            = mejor_vuelo["escalas"],
+            salida             = mejor_vuelo.get("salida", ""),
+            llegada            = mejor_vuelo.get("llegada", ""),
+            salida_vuelta      = mejor_vuelo.get("salida_vuelta", ""),
+            llegada_vuelta     = mejor_vuelo.get("llegada_vuelta", ""),
+            buscador           = NOMBRE_BUSCADOR,
             pasajeros          = pasajeros,
             es_minimo_historico = mejor_es_nuevo_min,
         )

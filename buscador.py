@@ -179,19 +179,35 @@ def buscar_vuelo_mas_barato(origen, destino, fecha_ida, fecha_vuelta,
             # Si stops no es un numero, puede ser un texto descriptivo
             escalas = str(stops) if stops else "Desconocido"
 
+        salida  = getattr(vuelo_mas_barato, "departure", "")
+        llegada = getattr(vuelo_mas_barato, "arrival", "")
+        dia_sig = getattr(vuelo_mas_barato, "arrival_time_ahead", "")
+        if dia_sig:
+            llegada = f"{llegada} ({dia_sig})"
+
+        salida_vuelta  = getattr(vuelo_mas_barato, "return_departure", "")
+        llegada_vuelta = getattr(vuelo_mas_barato, "return_arrival", "")
+        dia_sig_vuelta = getattr(vuelo_mas_barato, "return_arrival_time_ahead", "")
+        if dia_sig_vuelta:
+            llegada_vuelta = f"{llegada_vuelta} ({dia_sig_vuelta})"
+
         print(f"Precio encontrado: {precio_minimo:.2f} EUR")
 
         # Devuelve un diccionario con toda la info del vuelo mas barato
         return {
-            "origen":       origen,
-            "destino":      destino,
-            "fecha_ida":    fecha_ida,
-            "fecha_vuelta": fecha_vuelta,
-            "pasajeros":    pasajeros,
-            "precio_total": precio_minimo,
-            "aerolinea":    aerolinea,
-            "duracion":     duracion,
-            "escalas":      escalas,
+            "origen":         origen,
+            "destino":        destino,
+            "fecha_ida":      fecha_ida,
+            "fecha_vuelta":   fecha_vuelta,
+            "pasajeros":      pasajeros,
+            "precio_total":   precio_minimo,
+            "aerolinea":      aerolinea,
+            "duracion":       duracion,
+            "escalas":        escalas,
+            "salida":         salida,
+            "llegada":        llegada,
+            "salida_vuelta":  salida_vuelta,
+            "llegada_vuelta": llegada_vuelta,
         }
 
     except Exception as e:
