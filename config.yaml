@@ -1,0 +1,77 @@
+# ============================================================
+# ARCHIVO DE CONFIGURACION DEL BUSCADOR DE VUELOS
+# ============================================================
+# Para agregar una ruta nueva, copia un bloque "- nombre:"
+# y pegalo debajo del ultimo, cambiando los valores.
+# Los simbolos "#" son comentarios, Python los ignora.
+# ============================================================
+
+rutas:
+
+  - nombre: "MAD → EZE (Buenos Aires)"   # Nombre descriptivo para los mensajes de Telegram
+    origen: "MAD"                          # Codigo IATA del aeropuerto de origen
+    destino: "EZE"                         # Codigo IATA del aeropuerto de destino
+    pasajeros: 2                           # Cantidad de adultos
+
+    # Fechas de IDA a probar (formato: "YYYY-MM-DD")
+    fechas_ida:
+      - "2026-08-18"
+      - "2026-08-19"
+      - "2026-08-20"
+      - "2026-08-21"
+
+    # Fechas de VUELTA a probar (formato: "YYYY-MM-DD")
+    fechas_vuelta:
+      - "2026-09-01"
+      - "2026-09-02"
+      - "2026-09-03"
+      - "2026-09-04"
+
+    umbral_precio: 2350                    # Avisar si el precio TOTAL (2 personas) baja de este valor en euros
+    moneda: "EUR"                          # Moneda para comparar precios
+    solo_carry_on: true                    # true = sin equipaje despachado, false = con maleta
+
+  # ============================================================
+  # EJEMPLOS DE RUTAS PARA AGREGAR DESPUES (estan comentadas)
+  # Para activar una, borra el "#" de cada linea del bloque
+  # ============================================================
+
+  # - nombre: "MAD → GRU (Sao Paulo)"
+  #   origen: "MAD"
+  #   destino: "GRU"
+  #   pasajeros: 2
+  #   fechas_ida:
+  #     - "2026-08-18"
+  #     - "2026-08-19"
+  #   fechas_vuelta:
+  #     - "2026-09-01"
+  #     - "2026-09-02"
+  #   umbral_precio: 1600
+  #   moneda: "EUR"
+  #   solo_carry_on: true
+
+  # - nombre: "MAD → SCL (Santiago)"
+  #   origen: "MAD"
+  #   destino: "SCL"
+  #   pasajeros: 2
+  #   fechas_ida:
+  #     - "2026-08-20"
+  #     - "2026-08-21"
+  #   fechas_vuelta:
+  #     - "2026-09-03"
+  #     - "2026-09-04"
+  #   umbral_precio: 1500
+  #   moneda: "EUR"
+  #   solo_carry_on: false
+
+  # - nombre: "MAD → LIS (Lisboa)"
+  #   origen: "MAD"
+  #   destino: "LIS"
+  #   pasajeros: 2
+  #   fechas_ida:
+  #     - "2026-09-10"
+  #   fechas_vuelta:
+  #     - "2026-09-15"
+  #   umbral_precio: 200
+  #   moneda: "EUR"
+  #   solo_carry_on: true

@@ -1,0 +1,10 @@
+credenciales.txt
+*.log
+log.txt
+precios
+__pycache__/
+*.pyc
+.claude/
+venv/
+.env
+*.db
