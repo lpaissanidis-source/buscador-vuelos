@@ -9,12 +9,12 @@
 #   3. Guarda cada precio encontrado en la base de datos
 #   4. Manda alerta por Telegram si el precio baja del umbral
 #      o si es un nuevo minimo historico
+#   5. Manda un resumen al final de cada corrida
 # ============================================================
 
-import yaml        # Para leer el archivo config.yaml
-import datetime    # Para mostrar la hora de inicio/fin de cada ejecucion
+import yaml
+import datetime
 
-# Importa las funciones de los otros archivos del proyecto
 from database     import crear_tabla, guardar_precio, obtener_minimo_historico
 from buscador     import buscar_todas_las_combinaciones
 from telegram_bot import enviar_alerta_precio, enviar_mensaje
@@ -29,12 +29,9 @@ NOMBRE_BUSCADOR = "Vuelos Buenos Aires"
 def leer_config():
     """Lee el archivo config.yaml y devuelve la lista de rutas."""
 
-    # Abre el archivo config.yaml en modo lectura
     with open("config.yaml", "r", encoding="utf-8") as archivo:
-        # yaml.safe_load convierte el YAML a un diccionario de Python
         config = yaml.safe_load(archivo)
 
-    # Devuelve la lista de rutas (la clave "rutas" del YAML)
     return config.get("rutas", [])
 
 
@@ -49,6 +46,8 @@ def procesar_ruta(config_ruta):
 
     Regla anti-spam: manda como maximo 1 alerta por ruta
     (la combinacion de fechas con el precio mas bajo encontrado).
+
+    Devuelve un dict con el resumen de la ruta para el mensaje final.
     """
 
     nombre    = config_ruta["nombre"]
@@ -57,7 +56,6 @@ def procesar_ruta(config_ruta):
     umbral    = config_ruta["umbral_precio"]
     pasajeros = config_ruta["pasajeros"]
 
-    # Codigo de ruta para la base de datos (ej: "MAD-EZE")
     codigo_ruta = f"{origen}-{destino}"
 
     print(f"\n{'='*55}")
@@ -72,7 +70,7 @@ def procesar_ruta(config_ruta):
 
     if not resultados:
         print(f"  Sin resultados para esta ruta.")
-        return
+        return {"nombre": nombre, "umbral": umbral, "mejor_precio": None, "alerta_enviada": False}
 
     print(f"\n  Resultados obtenidos: {len(resultados)} combinaciones con precio")
 
@@ -80,9 +78,9 @@ def procesar_ruta(config_ruta):
     # PASO 2: Guardar TODOS los resultados en la base de datos
     # y detectar el mejor precio de esta ejecucion
     # --------------------------------------------------------
-    mejor_vuelo          = None    # El vuelo mas barato de esta ejecucion
+    mejor_vuelo          = None
     mejor_precio         = float("inf")
-    mejor_es_nuevo_min   = False   # Si es nuevo minimo historico
+    mejor_es_nuevo_min   = False
 
     for vuelo in resultados:
 
@@ -90,7 +88,6 @@ def procesar_ruta(config_ruta):
         fecha_vuelta = vuelo["fecha_vuelta"]
         precio_total = vuelo["precio_total"]
 
-        # Guarda el precio en la base de datos (siempre, sin importar si es bajo)
         guardar_precio(
             ruta         = codigo_ruta,
             fecha_ida    = fecha_ida,
@@ -102,31 +99,20 @@ def procesar_ruta(config_ruta):
             escalas      = vuelo["escalas"],
         )
 
-        # Muestra el resultado en pantalla
         bajo_umbral = "✓ BAJO UMBRAL" if precio_total < umbral else ""
         print(f"    {fecha_ida} → {fecha_vuelta} | {precio_total:.0f} EUR | "
               f"{vuelo['aerolinea']} | {vuelo['escalas']} {bajo_umbral}")
 
-        # --------------------------------------------------------
-        # Verifica si este vuelo es el mejor de esta ejecucion
-        # --------------------------------------------------------
         if precio_total < mejor_precio:
             mejor_precio = precio_total
             mejor_vuelo  = vuelo
 
-            # Consulta el minimo historico guardado en la base de datos
-            # para esta combinacion especifica de ruta + fechas
             minimo_historico = obtener_minimo_historico(
                 ruta         = codigo_ruta,
                 fecha_ida    = fecha_ida,
                 fecha_vuelta = fecha_vuelta,
             )
 
-            # Es nuevo minimo si no habia registro previo (None)
-            # o si el precio actual es menor al minimo guardado.
-            # Nota: el precio ya fue guardado arriba, entonces el minimo
-            # historico puede ser igual al precio actual en la primera vez.
-            # Por eso comparamos con estricto menor (<).
             if minimo_historico is None or precio_total < minimo_historico:
                 mejor_es_nuevo_min = True
             else:
@@ -138,7 +124,7 @@ def procesar_ruta(config_ruta):
     # O si es un nuevo minimo historico
     # --------------------------------------------------------
     if mejor_vuelo is None:
-        return
+        return {"nombre": nombre, "umbral": umbral, "mejor_precio": None, "alerta_enviada": False}
 
     debe_alertar = (mejor_precio < umbral) or mejor_es_nuevo_min
 
@@ -173,28 +159,20 @@ def procesar_ruta(config_ruta):
         print(f"\n  Mejor precio encontrado: {mejor_precio:.0f} EUR")
         print(f"  Umbral: {umbral} EUR — No se manda alerta (precio sobre el umbral)")
 
+    return {"nombre": nombre, "umbral": umbral, "mejor_precio": mejor_precio, "alerta_enviada": debe_alertar}
+
 
 # ============================================================
 # PROGRAMA PRINCIPAL
-# Todo lo que esta dentro de "if __name__ == '__main__':"
-# se ejecuta cuando corres "python main.py"
 # ============================================================
 
 if __name__ == "__main__":
 
-    # Muestra la hora de inicio
     hora_inicio = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"\nBuscador de vuelos iniciado: {hora_inicio}")
 
-    # --------------------------------------------------------
-    # PASO 0: Asegurarse de que la base de datos existe
-    # Si ya existe, crear_tabla() no hace nada (es seguro llamarla siempre)
-    # --------------------------------------------------------
     crear_tabla()
 
-    # --------------------------------------------------------
-    # PASO 1: Leer las rutas del archivo config.yaml
-    # --------------------------------------------------------
     try:
         rutas = leer_config()
     except FileNotFoundError:
@@ -208,20 +186,43 @@ if __name__ == "__main__":
 
     print(f"Rutas a buscar: {len(rutas)}")
 
-    # --------------------------------------------------------
-    # PASO 2: Procesar cada ruta una por una
-    # --------------------------------------------------------
+    resumen_rutas = []
     for ruta in rutas:
         try:
-            procesar_ruta(ruta)
+            resultado = procesar_ruta(ruta)
+            if resultado:
+                resumen_rutas.append(resultado)
         except Exception as e:
-            # Si una ruta falla (ej: Google la bloquea), continua con la siguiente
-            # en vez de detener todo el programa
             print(f"\n  ERROR procesando {ruta.get('nombre', '?')}: {e}")
             print(f"  Continuando con la siguiente ruta...")
+            resumen_rutas.append({"nombre": ruta.get("nombre", "?"), "umbral": ruta.get("umbral_precio", 0), "mejor_precio": None, "alerta_enviada": False})
 
-    # Muestra la hora de fin
     hora_fin = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     print(f"\n{'='*55}")
     print(f"Busqueda completada: {hora_fin}")
     print(f"{'='*55}\n")
+
+    # --------------------------------------------------------
+    # Mensaje de resumen a Telegram (siempre, aunque no haya ofertas)
+    # --------------------------------------------------------
+    _con_precio = [r for r in resumen_rutas if r["mejor_precio"] is not None]
+    _alertas    = sum(1 for r in resumen_rutas if r["alerta_enviada"])
+    _hora_corta = datetime.datetime.now().strftime("%d/%m %H:%M")
+
+    if _con_precio:
+        _mejor = min(_con_precio, key=lambda r: r["mejor_precio"])
+        _simbolo = "✅" if _mejor["mejor_precio"] < _mejor["umbral"] else "📌"
+        _linea_mejor = f"{_simbolo} Mejor: {_mejor['nombre']} → {_mejor['mejor_precio']:.0f}€ (umbral {_mejor['umbral']}€)"
+    else:
+        _linea_mejor = "⚠️ Sin precios encontrados (posible error de scraping)"
+
+    if _alertas > 0:
+        _estado = f"🔔 {_alertas} alerta(s) enviada(s)"
+    else:
+        _estado = "Sin ofertas por ahora"
+
+    enviar_mensaje(
+        f"📊 <b>{NOMBRE_BUSCADOR}</b> | {_hora_corta}\n"
+        f"{len(resumen_rutas)}/{len(rutas)} rutas OK | {_estado}\n"
+        f"{_linea_mejor}"
+    )
